@@ -1,7 +1,7 @@
 # Личный проект «Кексобукинг» [![Build status][travis-image]][travis-url]
 
 * Студент: [Alina Lee](https://up.htmlacademy.ru/javascript/14/user/493693).
-* Наставник: `Неизвестно`.
+* Наставник: Julia Dauhun.
 
 ---
 
