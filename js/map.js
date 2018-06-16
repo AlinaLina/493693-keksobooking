@@ -1,13 +1,17 @@
 'use strict';
 
-var numberOfObjects = 8;
-var titles = ['Большая уютная квартира', 'Маленькая неуютная квартира', 'Огромный прекрасный дворец', 'Маленький ужасный дворец', 'Красивый гостевой домик', 'Некрасивый негостеприимный домик', 'Уютное бунгало далеко от моря', 'Неуютное бунгало по колено в воде'];
-var types = ['palace', 'flat', 'house', 'bungalo'];
-var checkTimes = ['12:00', '13:00', '14:00'];
-var features = ['wifi', 'dishwasher', 'parking', 'washer', 'elevator', 'conditioner'];
-var photos = ['http://o0.github.io/assets/images/tokyo/hotel1.jpg', 'http://o0.github.io/assets/images/tokyo/hotel2.jpg', 'http://o0.github.io/assets/images/tokyo/hotel3.jpg'];
 var PIN_WIDTH = 50;
 var PIN_HEIGHT = 70;
+var MAIN_PIN_WIDTH = 65;
+var MAIN_PIN_HEIGHT = 65;
+var MAIN_PIN_X_POSITION = 570;
+var MAIN_PIN_Y_POSITION = 370;
+var NUMBER_OF_OBJECTS = 8;
+var TITLES = ['Большая уютная квартира', 'Маленькая неуютная квартира', 'Огромный прекрасный дворец', 'Маленький ужасный дворец', 'Красивый гостевой домик', 'Некрасивый негостеприимный домик', 'Уютное бунгало далеко от моря', 'Неуютное бунгало по колено в воде'];
+var TYPES = ['palace', 'flat', 'house', 'bungalo'];
+var CHECK_TIMES = ['12:00', '13:00', '14:00'];
+var FEATURES = ['wifi', 'dishwasher', 'parking', 'washer', 'elevator', 'conditioner'];
+var photos = ['http://o0.github.io/assets/images/tokyo/hotel1.jpg', 'http://o0.github.io/assets/images/tokyo/hotel2.jpg', 'http://o0.github.io/assets/images/tokyo/hotel3.jpg'];
 
 // Случайная сортировка массива.
 var sortArray = function (arrEnd, arrStart) {
@@ -33,8 +37,8 @@ var createObject = function () {
   var arrObj = [];
   var randomFeatures = [];
   var randomPhotos = [];
-  for (var i = 0; i < numberOfObjects; i++) {
-    randomFeatures[i] = sortArray(randomFeatures[i], features);
+  for (var i = 0; i < NUMBER_OF_OBJECTS; i++) {
+    randomFeatures[i] = sortArray(randomFeatures[i], FEATURES);
     randomFeatures[i].length = getRandomNumber(1, randomFeatures[i].length);
     arrObj[i] = {};
     arrObj[i].author = {
@@ -45,14 +49,14 @@ var createObject = function () {
       y: getRandomNumber(130, 630)
     };
     arrObj[i].offer = {
-      title: titles[i],
+      title: TITLES[i],
       address: arrObj[i].location.x + ', ' + arrObj[i].location.y,
       price: getRandomNumber(1000, 1000000),
-      type: getRandomItem(types),
+      type: getRandomItem(TYPES),
       rooms: getRandomNumber(1, 5),
       guests: getRandomNumber(2, 10),
-      checkin: getRandomItem(checkTimes),
-      checkout: getRandomItem(checkTimes),
+      checkin: getRandomItem(CHECK_TIMES),
+      checkout: getRandomItem(CHECK_TIMES),
       features: randomFeatures[i],
       description: '',
       photos: sortArray(randomPhotos[i], photos)
@@ -80,20 +84,28 @@ var removeChildren = function (parent, childrens) {
 };
 var map = document.querySelector('.map');
 var estateObjects = createObject();
-var fragment = document.createDocumentFragment();
 
 // Создание пинов.
 var createPin = function (number) {
+  var fragment = document.createDocumentFragment();
   var pinTemplate = document.querySelector('template').content.querySelector('.map__pin');
+  var pins = [];
   for (var i = 0; i < number; i++) {
     var pinElement = pinTemplate.cloneNode(true);
     pinElement.style = 'left: ' + (estateObjects[i].location.x - PIN_WIDTH / 2) + 'px; top: ' + (estateObjects[i].location.y - PIN_HEIGHT) + 'px';
     pinElement.querySelector('img').src = estateObjects[i].author.avatar;
     pinElement.querySelector('img').alt = estateObjects[i].offer.title;
+    pins[i] = pinElement;
     fragment.appendChild(pinElement);
   }
-  return fragment;
+  return [fragment, pins];
 };
+
+var pinsAll = createPin(NUMBER_OF_OBJECTS);
+
+var pinsCollection = pinsAll[1];
+
+var pinsInFragment = pinsAll[0];
 
 // Создание карточки объявления.
 var createCardElement = function (object) {
@@ -133,6 +145,105 @@ var createCardElement = function (object) {
   return cardElement;
 };
 
-map.classList.remove('map--faded');
-document.querySelector('.map__pins').appendChild(createPin(numberOfObjects));
-map.insertBefore(createCardElement(estateObjects[0]), map.querySelector('.map__filters-container'));
+var mainPin = document.querySelector('.map__pin--main');
+
+var fieldsets = document.querySelectorAll('fieldset');
+// Установка дисейбл. Заполнение адреса серединой начальной метки.
+
+
+for (var i = 0; i < fieldsets.length; i++) {
+  fieldsets[i].setAttribute('disabled', true);
+}
+
+document.querySelector('#address').value = Math.round((MAIN_PIN_X_POSITION + MAIN_PIN_WIDTH / 2)) + ', ' + (MAIN_PIN_Y_POSITION + MAIN_PIN_HEIGHT);
+
+mainPin.addEventListener('mouseup', function () {
+  for (i = 0; i < fieldsets.length; i++) {
+    fieldsets[i].removeAttribute('disabled');
+  }
+  document.querySelector('.ad-form').classList.remove('ad-form--disabled');
+  document.querySelector('#address').value = Math.round((MAIN_PIN_X_POSITION + PIN_WIDTH / 2)) + ', ' + Math.round((MAIN_PIN_Y_POSITION + PIN_HEIGHT));
+  document.querySelector('.map__pins').appendChild(pinsInFragment);
+});
+
+
+pinsCollection[0].addEventListener('click', function () {
+  var card = createCardElement(estateObjects[0]);
+  map.insertBefore(card, map.querySelector('.map__filters-container'));
+  var popupClose = document.querySelector('.popup__close');
+  popupClose.addEventListener('click', function () {
+    map.removeChild(card);
+  });
+});
+
+pinsCollection[1].addEventListener('click', function () {
+  var card = createCardElement(estateObjects[1]);
+  map.insertBefore(card, map.querySelector('.map__filters-container'));
+  var popupClose = document.querySelector('.popup__close');
+  popupClose.addEventListener('click', function () {
+    map.removeChild(card);
+  });
+});
+
+pinsCollection[2].addEventListener('click', function () {
+  var card = createCardElement(estateObjects[2]);
+  map.insertBefore(card, map.querySelector('.map__filters-container'));
+  var popupClose = document.querySelector('.popup__close');
+  popupClose.addEventListener('click', function () {
+    map.removeChild(card);
+  });
+});
+
+pinsCollection[3].addEventListener('click', function () {
+  var card = createCardElement(estateObjects[3]);
+  map.insertBefore(card, map.querySelector('.map__filters-container'));
+  var popupClose = document.querySelector('.popup__close');
+  popupClose.addEventListener('click', function () {
+    map.removeChild(card);
+  });
+});
+
+pinsCollection[4].addEventListener('click', function () {
+  var card = createCardElement(estateObjects[4]);
+  map.insertBefore(card, map.querySelector('.map__filters-container'));
+  var popupClose = document.querySelector('.popup__close');
+  popupClose.addEventListener('click', function () {
+    map.removeChild(card);
+  });
+});
+
+pinsCollection[5].addEventListener('click', function () {
+  var card = createCardElement(estateObjects[5]);
+  map.insertBefore(card, map.querySelector('.map__filters-container'));
+  var popupClose = document.querySelector('.popup__close');
+  popupClose.addEventListener('click', function () {
+    map.removeChild(card);
+  });
+});
+
+pinsCollection[6].addEventListener('click', function () {
+  var card = createCardElement(estateObjects[6]);
+  map.insertBefore(card, map.querySelector('.map__filters-container'));
+  var popupClose = document.querySelector('.popup__close');
+  popupClose.addEventListener('click', function () {
+    map.removeChild(card);
+  });
+});
+
+pinsCollection[7].addEventListener('click', function () {
+  var card = createCardElement(estateObjects[7]);
+  map.insertBefore(card, map.querySelector('.map__filters-container'));
+  var popupClose = document.querySelector('.popup__close');
+  popupClose.addEventListener('click', function () {
+    map.removeChild(card);
+  });
+});
+
+
+// for (var j = 0; j < pinsCollection.length; j++) {
+//  pinsCollection[j].addEventListener('click', function () {
+//    var card = createCardElement(estateObjects[j]);
+//    map.insertBefore(card, map.querySelector('.map__filters-container'));
+//    var popupClose = document.querySelector('.popup__close');
+//    popupClose.addEventListener('click', function () {
+//      map.removeChild(card);
