@@ -7,7 +7,16 @@ var MAIN_PIN_HEIGHT = 65;
 var MAIN_PIN_X_POSITION = 570;
 var MAIN_PIN_Y_POSITION = 370;
 var NUMBER_OF_OBJECTS = 8;
-var TITLES = ['Большая уютная квартира', 'Маленькая неуютная квартира', 'Огромный прекрасный дворец', 'Маленький ужасный дворец', 'Красивый гостевой домик', 'Некрасивый негостеприимный домик', 'Уютное бунгало далеко от моря', 'Неуютное бунгало по колено в воде'];
+var TITLES = [
+  'Большая уютная квартира',
+  'Маленькая неуютная квартира',
+  'Огромный прекрасный дворец',
+  'Маленький ужасный дворец',
+  'Красивый гостевой домик',
+  'Некрасивый негостеприимный домик',
+  'Уютное бунгало далеко от моря',
+  'Неуютное бунгало по колено в воде'
+];
 var TYPES = ['palace', 'flat', 'house', 'bungalo'];
 var CHECK_TIMES = ['12:00', '13:00', '14:00'];
 var FEATURES = ['wifi', 'dishwasher', 'parking', 'washer', 'elevator', 'conditioner'];
@@ -61,13 +70,14 @@ var createObject = function () {
   return arrObj;
 };
 
+var mapOfTypes = {
+  'flat': 'Квартира',
+  'bungalo': 'Бунгало',
+  'house': 'Дом',
+  'palace': 'Дворец'
+};
+
 var getOfType = function (type) {
-  var mapOfTypes = {
-    'flat': 'Квартира',
-    'bungalo': 'Бунгало',
-    'house': 'Дом',
-    'palace': 'Дворец'
-  };
   return mapOfTypes[type];
 };
 
@@ -92,7 +102,6 @@ var createPin = function (number) {
   return fragment;
 };
 
-var pinsFragment = createPin(NUMBER_OF_OBJECTS);
 var cardTemplate = document.querySelector('template').content.querySelector('.map__card');
 var cardElement = cardTemplate.cloneNode(true);
 
@@ -164,6 +173,7 @@ for (var i = 0; i < fieldsets.length; i++) {
 document.querySelector('#address').value = getPinPosition(MAIN_PIN_X_POSITION, MAIN_PIN_Y_POSITION, MAIN_PIN_WIDTH, MAIN_PIN_HEIGHT);
 
 mainPin.addEventListener('mouseup', function () {
+  var pinsFragment = createPin(NUMBER_OF_OBJECTS);
   map.classList.remove('map--faded');
   for (i = 0; i < fieldsets.length; i++) {
     fieldsets[i].removeAttribute('disabled');
@@ -173,15 +183,103 @@ mainPin.addEventListener('mouseup', function () {
   map.querySelector('.map__pins').appendChild(pinsFragment);
 });
 
-map.addEventListener('click', function (evt) {
-  var target;
-  if (evt.target.tagName === 'BUTTON' && evt.target !== map.querySelector('.map__pin--main') && evt.target !== map.querySelector('.popup__close')) {
-    target = evt.target;
-  } else if (evt.target.parentNode.tagName === 'BUTTON' && evt.target.parentNode !== map.querySelector('.map__pin--main')) {
-    target = evt.target.parentNode;
+// формы
+var mapOfMinPrice = {
+  'flat': '1000',
+  'bungalo': '0',
+  'house': '5000',
+  'palace': '10000'
+};
+
+var getOfMinPrice = function (value) {
+  return mapOfMinPrice[value];
+};
+
+var changePrice = function () {
+  minPrice = getOfMinPrice(type.options[type.options.selectedIndex].value);
+  price.placeholder = minPrice;
+  price.min = minPrice;
+};
+
+var showError = function (element, condition, massage) {
+  if (condition) {
+    element.style.borderColor = 'red';
+    element.setCustomValidity(massage);
+  } else {
+    element.setCustomValidity('');
   }
-  if (target) {
-    var card = createCardElement(estateObjects[target.getAttribute('data-number')]);
-    map.insertBefore(card, map.querySelector('.map__filters-container'));
+};
+
+var checkGuest = function () {
+  switch (+room.value) {
+    case 1:
+      showError(capacity, (+capacity.value === 2 || +capacity.value === 3 || +capacity.value === 0), 'Для одного гостя');
+      break;
+    case 2:
+      showError(capacity, (+capacity.value === 3 || +capacity.value === 0), 'Не более двух гостей');
+      break;
+    case 3:
+      showError(capacity, (+capacity.value === 0), 'Не более трех гостей');
+      break;
+    case 100:
+      showError(capacity, (!(+capacity.value === 0)), 'Не для гостей');
+      break;
+  }
+};
+
+var form = document.querySelector('.ad-form');
+var price = form.querySelector('#price');
+var type = form.querySelector('#type');
+var timeIn = form.querySelector('#timein');
+var timeOut = form.querySelector('#timeout');
+var minPrice;
+var reset = form.querySelector('.ad-form__reset');
+var room = form.querySelector('#room_number');
+var capacity = form.querySelector('#capacity');
+var sendButton = form.querySelector('.ad-form__submit');
+var title = form.querySelector('#title');
+
+var synchronizeSelect = function (mainSelect, secondSelect) {
+  var index = mainSelect.options.selectedIndex;
+  secondSelect.options[index].selected = true;
+};
+
+changePrice();
+
+type.addEventListener('change', function () {
+  changePrice();
+  timeIn.options[1].selected = true;
+});
+
+timeIn.addEventListener('change', function () {
+  synchronizeSelect(timeIn, timeOut);
+});
+
+timeOut.addEventListener('change', function () {
+  synchronizeSelect(timeOut, timeIn);
+});
+
+reset.addEventListener('click', function (evt) {
+  evt.preventDefault();
+  map.classList.add('map--faded');
+  var pins = map.querySelectorAll('.map__pin:not(.map__pin--main)');
+  removeChildren(map.querySelector('.map__pins'), pins);
+  form.reset();
+  for (i = 0; i < fieldsets.length; i++) {
+    fieldsets[i].setAttribute('disabled', true);
+  }
+  form.classList.add('ad-form--disabled');
+  cardElement.classList.add('hidden');
+  form.querySelector('#address').value = getPinPosition(MAIN_PIN_X_POSITION, MAIN_PIN_Y_POSITION, MAIN_PIN_WIDTH, MAIN_PIN_HEIGHT);
+});
+
+sendButton.addEventListener('click', function () {
+  capacity.style.borderColor = '#d9d9d3';
+  title.style.borderColor = '#d9d9d3';
+  price.style.borderColor = '#d9d9d3';
+  checkGuest();
+  showError(title, (title.value.length < 30 || title.value.length > 100), 'Поле должно содержать от 30 до 100 символов');
+  if (!price.validity.valid) {
+    price.style.borderColor = 'red';
   }
 });
