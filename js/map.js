@@ -183,6 +183,14 @@ mainPin.addEventListener('mouseup', function () {
   map.querySelector('.map__pins').appendChild(pinsFragment);
 });
 
+map.addEventListener('click', function () {
+  var target;
+  if (target) {
+    var card = createCardElement(estateObjects[target.getAttribute('data-number')]);
+    map.insertBefore(card, map.querySelector('.map__filters-container'));
+  }
+});
+
 // формы
 var mapOfMinPrice = {
   'flat': '1000',
